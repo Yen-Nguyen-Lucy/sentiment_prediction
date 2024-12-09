@@ -215,6 +215,7 @@ def analyze_product_by_code(ma_san_pham):
     # Lấy tên sản phẩm từ mã sản phẩm
     product_name = product_data[0]
     st.write(f"Tên sản phẩm: {product_name}")
+    st.write(f'Mã sản phẩm: {ma_san_pham}')
 
     # Lọc dữ liệu nhận xét tích cực và tiêu cực
     filtered_df_pos = pre_df[(pre_df['star_cleaned'] == 5) & (pre_df['ma_san_pham'] == ma_san_pham)]
@@ -291,7 +292,7 @@ def analyze_product_by_code(ma_san_pham):
 st.title("Data Science Project")
 st.write("## Sentiment Analysis")
 
-menu = ["Project Info",  "Build Model", "New Prediction"]
+menu = ["Project Info", "Product Details", "Build Model", "New Prediction"]
 # Sidebar Menu
 choice = st.sidebar.selectbox('Menu', menu)
 # Sidebar Content
@@ -480,29 +481,6 @@ Nhờ vào hệ thống trực tuyến, Hasaki có thể thu thập ý kiến m�
             st.pyplot(fig)
 
 
-        st.subheader('Khám phá thông tin chi tiết từng sản phẩm')
-        # Tạo text_input để nhập liệu
-        ma_san_pham_input = st.text_input("Nhập mã sản phẩm:")
-
-        # Tạo selectbox với danh sách mã sản phẩm
-        ma_san_pham_options = san_pham['ma_san_pham'].unique().tolist()
-        ma_san_pham_select = st.selectbox("Hoặc chọn từ danh sách:", ma_san_pham_options)
-
-        # Kiểm tra xem người dùng đã nhập liệu hay chọn từ danh sách
-        if ma_san_pham_input:
-            ma_san_pham = int(ma_san_pham_input)
-            st.write("Bạn đã nhập:", ma_san_pham)
-        else:
-            ma_san_pham = ma_san_pham_select
-            st.write("Bạn đã chọn:", ma_san_pham)
-
-        # Nút "Phân tích"
-        if st.button("Phân tích"):
-            if ma_san_pham_input or ma_san_pham_select:  # Kiểm tra cả hai trường hợp
-                # Gọi hàm phân tích
-                analyze_product_by_code(ma_san_pham)
-            else:
-                st.warning("Vui lòng nhập mã sản phẩm.")
         
     with tab3:
         st.image('tab3_2.png')
@@ -543,6 +521,79 @@ Nhờ vào hệ thống trực tuyến, Hasaki có thể thu thập ý kiến m�
         st.markdown("---")
         st.markdown("*Học viên chúng em xin gửi lời cảm ơn trân trọng nhất đến Cô Khuất Thùy Phương đã tận tình hướng dẫn để chúng em có thể hoàn thành Đồ án tốt nghiệp này!*")
             
+elif choice == 'Product Details':
+    st.image('product_details.jpg')
+    st.subheader('Khám phá thông tin chi tiết từng sản phẩm')
+        
+    # Khởi tạo trạng thái mặc định
+    if "ma_san_pham_input" not in st.session_state:
+        st.session_state.ma_san_pham_input = ""
+    if "ten_san_pham_select" not in st.session_state:
+        st.session_state.ten_san_pham_select = ""
+    if "ma_san_pham_select" not in st.session_state:
+        st.session_state.ma_san_pham_select = ""
+
+    # Hàm đặt lại trạng thái
+    def reset_state(exclude):
+        if exclude != "ma_san_pham_input":
+            st.session_state.ma_san_pham_input = ""
+        if exclude != "ten_san_pham_select":
+            st.session_state.ten_san_pham_select = ""
+        if exclude != "ma_san_pham_select":
+            st.session_state.ma_san_pham_select = ""
+
+    # Tạo các widget
+    ma_san_pham_input = st.text_input(
+        "Nhập mã sản phẩm:", 
+        st.session_state.ma_san_pham_input, 
+        key="ma_san_pham_input", 
+        on_change=lambda: reset_state("ma_san_pham_input")
+    )
+
+    ma_san_pham_select = st.selectbox(
+        "Hoặc chọn mã từ danh sách:", 
+        [""] + san_pham['ma_san_pham'].astype(str).unique().tolist(), 
+        index=san_pham['ma_san_pham'].astype(str).unique().tolist().index(st.session_state.ma_san_pham_select) + 1 if st.session_state.ma_san_pham_select in san_pham['ma_san_pham'].astype(str).unique().tolist() else 0,
+        key="ma_san_pham_select", 
+        on_change=lambda: reset_state("ma_san_pham_select")
+    )
+    
+    ma_san_pham_options = san_pham['ten_san_pham'].unique().tolist()
+    ten_san_pham_select = st.selectbox(
+        "Hoặc chọn sản phẩm từ tên:", 
+        [""] + ma_san_pham_options, 
+        index=ma_san_pham_options.index(st.session_state.ten_san_pham_select) + 1 if st.session_state.ten_san_pham_select in ma_san_pham_options else 0,
+        key="ten_san_pham_select", 
+        on_change=lambda: reset_state("ten_san_pham_select")
+    )
+
+    
+
+    # Xử lý logic tìm sản phẩm
+    ma_san_pham = None
+    if ma_san_pham_input:
+        try:
+            ma_san_pham = int(ma_san_pham_input)
+            st.write("Bạn đã nhập mã sản phẩm:", ma_san_pham)
+        except ValueError:
+            st.error("Vui lòng nhập một mã sản phẩm hợp lệ (số nguyên).")
+    elif ten_san_pham_select:
+        filtered_row = san_pham[san_pham['ten_san_pham'] == ten_san_pham_select]
+        if not filtered_row.empty:
+            ma_san_pham = filtered_row['ma_san_pham'].iloc[0]
+            st.write("Bạn đã chọn sản phẩm:", ten_san_pham_select, "với mã:", ma_san_pham)
+        else:
+            st.warning("Không tìm thấy mã sản phẩm cho sản phẩm được chọn.")
+    elif ma_san_pham_select:
+        ma_san_pham = int(ma_san_pham_select)
+        st.write("Bạn đã chọn mã sản phẩm:", ma_san_pham)
+
+    # Nút "Phân tích"
+    if st.button("Phân tích"):
+        if ma_san_pham is not None:
+            analyze_product_by_code(ma_san_pham)
+        else:
+            st.warning("Vui lòng chọn một phương thức tìm kiếm sản phẩm.")
 
 
 
